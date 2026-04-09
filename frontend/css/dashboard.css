@@ -1,0 +1,21 @@
+.dashboard-hero {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2rem;
+  align-items: start;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: 2rem;
+}
+@media (max-width: 600px) {
+  .dashboard-hero { grid-template-columns: 1fr; }
+  .hero-score { display: none; }
+}
+.level-row { display: flex; align-items: center; gap: 8px; }
+
+.module-card { cursor: default; transition: border-color 0.2s, transform 0.2s; }
+.module-card:hover { border-color: var(--border-bright); transform: translateY(-2px); }
+.module-icon { font-size: 1.6rem; margin-bottom: 8px; }
+
+.accuracy-row { display: flex; align-items: center; gap: 12px; }
