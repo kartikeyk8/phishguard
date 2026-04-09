@@ -1,1 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz — PhishGuard</title>
+  <link rel="stylesheet" href="/static/css/main.css">
+  <style>
+    body { min-height: 100vh; }
+    .quiz-nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 24px; border-bottom: 1px solid var(--border);
+      background: var(--bg-surface);
+    }
+    .quiz-wrap { max-width: 700px; margin: 2rem auto; padding: 0 24px 3rem; }
+    #quiz-loading { text-align: center; padding: 4rem 0; }
 
+    /* Simulation banner */
+    .sim-banner {
+      border-radius: var(--radius-md); padding: 1rem 1.2rem;
+      margin-bottom: 1.2rem; font-size: 0.9rem; border-left: 4px solid;
+    }
+    .sim-email  { background: rgba(26,115,232,0.1);  border-color: var(--accent);   color: #93c5fd; }
+    .sim-sms    { background: rgba(240,136,62,0.1);  border-color: var(--warning);  color: #fcd34d; }
+    .sim-info   { background: rgba(63,185,80,0.08);  border-color: var(--success);  color: #86efac; }
+    .sim-error  { background: var(--danger-glow);    border-color: var(--danger);   color: #fca5a5; }
+
+    /* Question card */
+    .question-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-xl); padding: 2rem; margin-bottom: 1.5rem;
+    }
+    .question-meta {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 1.2rem;
+    }
+    .question-type-badge {
+      font-size: 0.75rem; font-weight: 700; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.1em;
+    }
+    .timer {
+      font-family: var(--font-mono); font-size: 0.9rem;
+      color: var(--text-secondary); background: var(--bg-surface);
+      padding: 4px 12px; border-radius: 20px; border: 1px solid var(--border);
+    }
+    #question-body {
+      white-space: pre-wrap; background: var(--bg-surface);
+      border: 1px solid var(--border); border-radius: var(--radius-md);
+      padding: 1.2rem; font-family: var(--font-mono); font-size: 0.86rem;
+      line-height: 1.7; color: var(--text-primary);
+    }
+
+    /* URL analyser */
+    .url-analyser {
+      background: var(--bg-surface); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 1.5rem; margin-bottom: 1.5rem;
+    }
+    .url-input-row { display: flex; gap: 8px; }
+    .breakdown-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+    .breakdown-item {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 8px 12px;
+    }
+    .breakdown-key { font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
+    .breakdown-val { font-family: var(--font-mono); font-size: 0.84rem; color: var(--text-primary); margin-top: 2px; }
+    .flag-item { display: flex; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 0.84rem; }
+    .flag-icon { color: var(--warning); flex-shrink: 0; }
+    .verdict-box { border-radius: var(--radius-md); padding: 10px 14px; margin-top: 12px; font-weight: 600; font-size: 0.9rem; }
+    .verdict-phish { background: var(--danger-glow); border: 1px solid rgba(248,81,73,0.3); color: #f87171; }
+    .verdict-safe  { background: rgba(63,185,80,0.08); border: 1px solid rgba(63,185,80,0.3); color: #86efac; }
+
+    /* Options */
+    .options { display: flex; flex-direction: column; gap: 10px; }
+    .option-btn {
+      width: 100%; text-align: left; padding: 1rem 1.2rem;
+      background: var(--bg-surface); border: 1px solid var(--border);
+      border-radius: var(--radius-md); color: var(--text-primary);
+      font-family: var(--font-sans); font-size: 0.93rem;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .option-btn:hover:not(.disabled) { background: var(--bg-elevated); border-color: var(--border-bright); }
+    .option-btn.selected { border-color: var(--accent); background: var(--accent-glow); }
+    .option-btn.disabled { cursor: not-allowed; opacity: 0.7; }
+
+    /* Result */
+    .score-circle {
+      width: 130px; height: 130px; border-radius: 50%; margin: 0 auto 1rem;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      border: 4px solid var(--border);
+    }
+    .score-circle.pass { border-color: var(--success); background: rgba(63,185,80,0.08); }
+    .score-circle.fail { border-color: var(--danger);  background: var(--danger-glow); }
+    .score-pct    { font-size: 2rem; font-weight: 700; }
+    .score-status { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; }
+    .stat-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-md); padding: 1rem; text-align: center;
+    }
+    .stat-val   { font-size: 1.6rem; font-weight: 700; }
+    .stat-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 2px; }
+    .review-item { padding: 0.9rem 1rem; border-radius: var(--radius-md); border: 1px solid var(--border); margin-bottom: 8px; }
+    .review-item.correct { border-left: 3px solid var(--success); }
+    .review-item.wrong   { border-left: 3px solid var(--danger); }
+    .review-header { display: flex; justify-content: space-between; align-items: center; }
+  </style>
+</head>
+<body>
+  <nav class="quiz-nav">
+    <a href="/static/pages/dashboard.html" class="btn btn-ghost">← Dashboard</a>
+    <div style="display:flex;align-items:center;gap:12px">
+      <span class="badge" id="type-badge">—</span>
+      <span class="badge badge-blue" id="difficulty-badge">…</span>
+      <span class="timer" id="timer">00:00</span>
+    </div>
+  </nav>
+
+  <div class="quiz-wrap">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <span class="text-xs text-muted" id="question-num">Question 1</span>
+      <span class="text-xs text-secondary" id="progress-text">1 / 5</span>
+    </div>
+    <div class="progress-track mb-3">
+      <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+    </div>
+
+    <!-- Loading -->
+    <div id="quiz-loading">
+      <div class="spinner"></div>
+      <p class="mt-2 text-secondary">Gemini AI is generating your questions…</p>
+    </div>
+
+    <!-- Quiz -->
+    <div id="quiz-content" style="display:none">
+      <!-- Simulation banner shown here -->
+      <div id="sim-banner"></div>
+
+      <!-- URL analyser (only for url type) -->
+      <div id="url-analyser-wrap" style="display:none">
+        <div class="url-analyser">
+          <p class="section-title mb-2">🔗 Live URL Analyser — powered by tldextract</p>
+          <div class="url-input-row">
+            <input class="form-input" id="url-input" placeholder="Paste any URL here to analyse it live…" style="flex:1">
+            <button class="btn btn-primary" onclick="analyseURL()">Analyse →</button>
+          </div>
+          <div id="url-result"></div>
+        </div>
+      </div>
+
+      <div class="question-card">
+        <div class="question-meta">
+          <span class="question-type-badge" id="question-type">—</span>
+        </div>
+        <pre id="question-body" style="white-space:pre-wrap"></pre>
+      </div>
+      <div class="options" id="options"></div>
+    </div>
+
+    <!-- Result -->
+    <div id="quiz-result" style="display:none"></div>
+  </div>
+
+  <script type="module">
+    import { apiFetch, requireAuth, getUser } from "/static/js/auth.js";
+    requireAuth();
+
+    const params     = new URLSearchParams(location.search);
+    const difficulty = params.get("level") || getUser()?.level || "beginner";
+    const pType      = params.get("type")  || "email";
+
+    const DIFF_LABELS  = { beginner: "Beginner", intermediate: "Intermediate", advanced: "Advanced" };
+    const DIFF_COLORS  = { beginner: "badge-green", intermediate: "badge-blue", advanced: "badge-orange" };
+    const TYPE_ICONS   = { email: "✉ EMAIL", sms: "💬 SMS", url: "🔗 URL", voice: "🎙 VOICE" };
+    const TYPE_COLORS  = { email: "badge-blue", sms: "badge-orange", url: "badge-green", voice: "badge-purple" };
+
+    let questions   = [];
+    let sessionKey  = "";
+    let currentIdx  = 0;
+    let answers     = [];
+    let timerSec    = 0;
+    let timerInterval;
+
+    // Set badges
+    document.getElementById("difficulty-badge").textContent = DIFF_LABELS[difficulty];
+    document.getElementById("difficulty-badge").className   = `badge ${DIFF_COLORS[difficulty]}`;
+    document.getElementById("type-badge").textContent       = TYPE_ICONS[pType] || pType.toUpperCase();
+    document.getElementById("type-badge").className         = `badge ${TYPE_COLORS[pType] || "badge-blue"}`;
+
+    // Show URL analyser for url type
+    if (pType === "url") {
+      document.getElementById("url-analyser-wrap").style.display = "block";
+    }
+
+    async function loadQuiz() {
+      try {
+        const data  = await apiFetch(`/quiz/questions/${difficulty}/${pType}`);
+        questions   = data.questions;
+        sessionKey  = data.session_key;
+
+        showSimBanner(data.simulation, pType);
+        showQuestion(0);
+
+        document.getElementById("quiz-loading").style.display  = "none";
+        document.getElementById("quiz-content").style.display  = "block";
+      } catch (e) {
+        document.getElementById("quiz-loading").innerHTML =
+          `<div class="alert alert-error">Failed to load quiz: ${e.message}</div>`;
+      }
+    }
+
+    function showSimBanner(sim, type) {
+      const el = document.getElementById("sim-banner");
+      if (!sim) return;
+
+      if (type === "email") {
+        if (sim.sent) {
+          el.className = "sim-banner sim-email";
+          el.innerHTML = `📧 <strong>Real phishing email sent to your inbox!</strong><br>
+            Check <strong>${sim.to}</strong> — it should arrive within 30 seconds.
+            Read it carefully in your inbox, then come back here and answer the questions.`;
+        } else {
+          el.className = "sim-banner sim-error";
+          el.innerHTML = `📧 Email simulation: ${sim.reason || "SMTP not configured"} — questions show the scenario directly.`;
+        }
+      } else if (type === "sms") {
+        if (sim.sent) {
+          el.className = "sim-banner sim-sms";
+          el.innerHTML = `💬 <strong>Real phishing SMS sent to your phone!</strong><br>
+            Check your messages — a simulated smishing attack has been sent to your registered number.
+            Read it on your phone, then come back and answer the questions.`;
+        } else {
+          el.className = "sim-banner sim-error";
+          el.innerHTML = `💬 SMS simulation: ${sim.reason || "Twilio not configured"} — questions show the scenario directly.`;
+        }
+      } else if (type === "url") {
+        el.className = "sim-banner sim-info";
+        el.innerHTML = `🔗 <strong>Live URL Analyser active.</strong> Use the analyser above to check any suspicious URL before answering the questions below.`;
+      } else if (type === "voice") {
+        el.className = "sim-banner sim-info";
+        el.innerHTML = `🎙 <strong>Voice Phishing Transcripts.</strong> Read each call transcript carefully and identify the manipulation tactics being used.`;
+      }
+    }
+
+    function showQuestion(idx) {
+      currentIdx = idx;
+      const q    = questions[idx];
+
+      const pct = Math.round((idx / questions.length) * 100);
+      document.getElementById("progress-fill").style.width  = pct + "%";
+      document.getElementById("progress-text").textContent  = `${idx + 1} / ${questions.length}`;
+      document.getElementById("question-num").textContent   = `Question ${idx + 1}`;
+      document.getElementById("question-type").textContent  = (TYPE_ICONS[pType] || pType.toUpperCase()) + " PHISHING";
+      document.getElementById("question-body").textContent  = q.content;
+
+      const optEl = document.getElementById("options");
+      optEl.innerHTML = "";
+      (q.options || []).forEach(opt => {
+        const btn       = document.createElement("button");
+        btn.className   = "option-btn fade-up";
+        btn.textContent = opt;
+        btn.onclick     = () => selectAnswer(btn, opt);
+        optEl.appendChild(btn);
+      });
+
+      startTimer();
+    }
+
+    function startTimer() {
+      timerSec = 0;
+      clearInterval(timerInterval);
+      const el = document.getElementById("timer");
+      el.style.color = "";
+      timerInterval = setInterval(() => {
+        timerSec++;
+        const m = String(Math.floor(timerSec / 60)).padStart(2, "0");
+        const s = String(timerSec % 60).padStart(2, "0");
+        el.textContent = `${m}:${s}`;
+        if (timerSec >= 60) el.style.color = "var(--warning)";
+        if (timerSec >= 90) el.style.color = "var(--danger)";
+      }, 1000);
+    }
+
+    function selectAnswer(btn, selected) {
+      clearInterval(timerInterval);
+      document.querySelectorAll(".option-btn").forEach(b => { b.disabled = true; b.classList.add("disabled"); });
+      btn.classList.add("selected");
+
+      answers.push({
+        question_id: questions[currentIdx].id,
+        user_answer: selected,
+        time_taken:  timerSec,
+      });
+
+      setTimeout(() => {
+        if (currentIdx + 1 < questions.length) showQuestion(currentIdx + 1);
+        else submitQuiz();
+      }, 600);
+    }
+
+    async function submitQuiz() {
+      document.getElementById("quiz-content").style.display = "none";
+      document.getElementById("quiz-result").style.display  = "block";
+      document.getElementById("quiz-result").innerHTML =
+        `<div class="text-center mt-4"><div class="spinner"></div><p class="mt-2 text-secondary">Calculating your results…</p></div>`;
+
+      try {
+        const result = await apiFetch("/quiz/submit", {
+          method: "POST",
+          body: JSON.stringify({ difficulty, phishing_type: pType, session_key: sessionKey, answers }),
+        });
+        renderResult(result);
+      } catch (e) {
+        document.getElementById("quiz-result").innerHTML =
+          `<div class="alert alert-error">Submission failed: ${e.message}</div>`;
+      }
+    }
+
+    function renderResult(r) {
+      const passClass = r.passed ? "text-success" : "text-danger";
+      const passText  = r.passed ? "✓ Passed" : "✗ Needs improvement";
+
+      let nextHTML = "";
+      if (r.next_level === "report") {
+        nextHTML = `<a href="/static/pages/report.html" class="btn btn-primary btn-lg">View Your Awareness Report →</a>`;
+      } else if (r.passed) {
+        nextHTML = `<a href="/static/pages/quiz.html?level=${r.next_level}&type=${pType}" class="btn btn-primary btn-lg">
+          Continue to ${r.next_level.charAt(0).toUpperCase() + r.next_level.slice(1)} →</a>`;
+      } else {
+        nextHTML = `<a href="/static/pages/quiz.html?level=${difficulty}&type=${pType}" class="btn btn-ghost btn-lg">
+          Retry ${DIFF_LABELS[difficulty]}</a>`;
+      }
+
+      document.getElementById("quiz-result").innerHTML = `
+        <div class="fade-up">
+          <div class="text-center mb-3">
+            <div class="score-circle ${r.passed ? "pass" : "fail"}">
+              <span class="score-pct">${r.percentage}%</span>
+              <span class="score-status ${passClass}">${passText}</span>
+            </div>
+            <h2 class="mt-2">${DIFF_LABELS[difficulty]} ${pType.toUpperCase()} Quiz Complete</h2>
+            <p class="text-secondary text-sm">70% required to advance to next level</p>
+          </div>
+          <div class="grid-3 mb-3">
+            <div class="stat-card"><div class="stat-val text-success">${r.correct}</div><div class="stat-label">Correct</div></div>
+            <div class="stat-card"><div class="stat-val text-danger">${r.incorrect}</div><div class="stat-label">Incorrect</div></div>
+            <div class="stat-card"><div class="stat-val">${r.score > 0 ? "+" : ""}${r.score}</div><div class="stat-label">Points</div></div>
+          </div>
+          <div class="mb-3">
+            <p class="section-title">Answer Review</p>
+            ${r.details.map((d, i) => `
+              <div class="review-item ${d.correct ? "correct" : "wrong"}">
+                <div class="review-header">
+                  <span class="text-sm">Q${i + 1}</span>
+                  <span class="badge ${d.correct ? "badge-green" : "badge-red"}">${d.correct ? "Correct +10" : "Wrong −5"}</span>
+                </div>
+                ${!d.correct ? `<p class="text-xs text-secondary mt-1">Correct answer: <strong>${d.correct_answer}</strong></p>` : ""}
+                <p class="text-xs text-muted mt-1">💡 ${d.explanation}</p>
+              </div>
+            `).join("")}
+          </div>
+          <div class="text-center">${nextHTML}</div>
+        </div>`;
+    }
+
+    // URL Analyser
+    window.analyseURL = async () => {
+      const url   = document.getElementById("url-input").value.trim();
+      const resEl = document.getElementById("url-result");
+      if (!url) return;
+
+      resEl.innerHTML = `<div class="spinner" style="margin-top:12px"></div>`;
+
+      try {
+        const data = await apiFetch("/quiz/analyse-url", {
+          method: "POST",
+          body: JSON.stringify({ url }),
+        });
+
+        const isPhish = data.is_phishing;
+        resEl.innerHTML = `
+          <div class="${isPhish ? "verdict-box verdict-phish" : "verdict-box verdict-safe"}">
+            ${isPhish ? "⚠" : "✓"} ${data.verdict} — ${data.confidence} Confidence
+          </div>
+          <div class="breakdown-grid">
+            <div class="breakdown-item"><div class="breakdown-key">Real Domain</div><div class="breakdown-val">${data.breakdown?.full_domain || "—"}</div></div>
+            <div class="breakdown-item"><div class="breakdown-key">Subdomain</div><div class="breakdown-val">${data.breakdown?.subdomain || "none"}</div></div>
+            <div class="breakdown-item"><div class="breakdown-key">HTTPS</div><div class="breakdown-val">${data.breakdown?.uses_https ? "Yes ✓" : "No ✗"}</div></div>
+            <div class="breakdown-item"><div class="breakdown-key">Risk Score</div><div class="breakdown-val">${data.risk_score}</div></div>
+          </div>
+          ${data.flags?.length ? `
+            <div style="margin-top:10px">
+              ${data.flags.map(f => `<div class="flag-item"><span class="flag-icon">⚠</span><span>${f}</span></div>`).join("")}
+            </div>` : ""}
+          <p class="text-xs text-secondary mt-2">${data.explanation || ""}</p>`;
+      } catch (e) {
+        resEl.innerHTML = `<div class="alert alert-error mt-2">${e.message}</div>`;
+      }
+    };
+
+    loadQuiz();
+  </script>
+</body>
+</html>

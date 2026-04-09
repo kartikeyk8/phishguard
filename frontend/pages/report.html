@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Awareness Report — PhishGuard</title>
+  <link rel="stylesheet" href="/static/css/main.css">
+  <style>
+    .report-nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 24px; border-bottom: 1px solid var(--border);
+      background: var(--bg-surface);
+    }
+    .report-wrap { max-width: 760px; margin: 2rem auto; padding: 0 24px 4rem; }
+
+    .report-header {
+      background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-elevated) 100%);
+      border: 1px solid var(--border-bright);
+      border-radius: var(--radius-xl);
+      padding: 2rem; margin-bottom: 2rem;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .report-badge {
+      background: var(--accent); color: #fff;
+      padding: 6px 14px; border-radius: 20px;
+      font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    /* Chart */
+    .chart-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .chart-label { font-size: 0.8rem; font-weight: 700; min-width: 52px; color: var(--text-secondary); }
+    .chart-bar-track {
+      flex: 1; height: 28px; background: var(--bg-surface);
+      border: 1px solid var(--border); border-radius: 6px; overflow: hidden;
+    }
+    .chart-bar-fill {
+      height: 100%; border-radius: 6px;
+      display: flex; align-items: center;
+      transition: width 1s ease;
+      min-width: 40px;
+    }
+    .chart-bar-pct { font-size: 0.75rem; font-weight: 700; color: #fff; padding: 0 10px; }
+
+    /* Weakest category highlight */
+    .weakness-box {
+      border-radius: var(--radius-lg); padding: 1.5rem;
+      border: 1px solid rgba(248,81,73,0.3);
+      background: var(--danger-glow); margin-bottom: 1.5rem;
+    }
+    .weakness-header { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+    .weakness-pill {
+      padding: 4px 14px; border-radius: 20px;
+      font-size: 0.8rem; font-weight: 700; color: #fff;
+    }
+
+    /* Recommendations */
+    .rec-item {
+      display: flex; gap: 12px; padding: 0.9rem 0;
+      border-bottom: 1px solid var(--border); font-size: 0.92rem;
+    }
+    .rec-item:last-child { border-bottom: none; }
+    .rec-bullet { color: var(--accent); font-weight: 700; flex-shrink: 0; }
+  </style>
+</head>
+<body>
+  <nav class="report-nav">
+    <a href="/static/pages/dashboard.html" class="btn btn-ghost">← Dashboard</a>
+    <div style="display:flex;align-items:center;gap:12px">
+      <span class="report-badge">Awareness Report</span>
+      <button class="btn btn-primary" id="download-btn">Download PDF Report</button>
+      <button class="btn btn-ghost" id="logout-btn">Sign Out</button>
+    </div>
+  </nav>
+
+  <div class="report-wrap">
+    <div id="loading" class="text-center" style="padding:4rem 0">
+      <div class="spinner"></div>
+      <p class="mt-2 text-secondary">Generating your report…</p>
+    </div>
+
+    <div id="report-content" style="display:none">
+
+      <!-- Header -->
+      <div class="report-header fade-up">
+        <div>
+          <p class="section-title">Phishing Awareness Report</p>
+          <h1 id="report-name">…</h1>
+          <p class="text-secondary text-sm mt-1" id="report-date">…</p>
+        </div>
+        <div class="text-right">
+          <div style="font-size:2.5rem;font-weight:700;color:var(--accent)" id="overall-score">—</div>
+          <div class="text-xs text-muted">Total Points</div>
+        </div>
+      </div>
+
+      <!-- Stats row -->
+      <div class="grid-3 mb-3 fade-up-2">
+        <div class="card text-center">
+          <div style="font-size:1.8rem;font-weight:700;color:var(--success)" id="overall-accuracy">—</div>
+          <div class="text-xs text-muted mt-1">Overall Accuracy</div>
+        </div>
+        <div class="card text-center">
+          <div style="font-size:1.8rem;font-weight:700;color:var(--warning)" id="avg-response">—</div>
+          <div class="text-xs text-muted mt-1">Avg Response Time</div>
+        </div>
+        <div class="card text-center">
+          <div style="font-size:1.1rem;font-weight:700;color:var(--danger)" id="weakest-cat">—</div>
+          <div class="text-xs text-muted mt-1">Weakest Category</div>
+        </div>
+      </div>
+
+      <!-- Category chart -->
+      <div class="card mb-3 fade-up-3">
+        <p class="section-title mb-3">Accuracy by Phishing Category</p>
+        <div id="category-chart"></div>
+      </div>
+
+      <!-- Weakness highlight -->
+      <div class="weakness-box fade-up-4">
+        <div class="weakness-header">
+          <span style="font-size:1.3rem">⚠</span>
+          <h3>Weakest Area</h3>
+          <span class="weakness-pill" id="weakest-badge">—</span>
+        </div>
+        <p class="text-secondary text-sm">
+          Focus your attention on improving your detection skills in this category.
+          Review the recommendations below for targeted guidance.
+        </p>
+      </div>
+
+      <!-- Recommendations -->
+      <div class="card fade-up-4">
+        <p class="section-title mb-2">Personalised Recommendations</p>
+        <ul id="recommendations" style="list-style:none; padding:0"></ul>
+      </div>
+
+    </div>
+  </div>
+
+  <script type="module" src="/static/js/report.js"></script>
+</body>
+</html>

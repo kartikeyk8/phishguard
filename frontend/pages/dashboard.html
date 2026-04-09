@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — PhishGuard</title>
+  <link rel="stylesheet" href="/static/css/main.css">
+  <link rel="stylesheet" href="/static/css/dashboard.css">
+</head>
+<body>
+  <nav class="navbar">
+    <a class="navbar-brand" href="/static/pages/dashboard.html">
+      <span class="icon">🛡</span> PhishGuard
+    </a>
+    <div class="navbar-actions">
+      <div class="nav-user">
+        <span id="nav-username">…</span>
+        <div class="nav-avatar" id="nav-initials">?</div>
+      </div>
+      <button class="btn btn-ghost" id="logout-btn">Sign Out</button>
+    </div>
+  </nav>
+
+  <main class="container" style="padding-top:2rem; padding-bottom:3rem;">
+
+    <!-- Hero Row -->
+    <div class="dashboard-hero fade-up">
+      <div class="hero-text">
+        <p class="section-title">Welcome back</p>
+        <h1 id="user-name">…</h1>
+        <p class="text-secondary mt-1">Continue your phishing awareness training below.</p>
+        <div class="level-row mt-2">
+          <span class="badge badge-blue" id="user-level">…</span>
+          <span class="text-sm text-secondary">Current Level</span>
+        </div>
+        <div class="mt-2">
+          <div class="flex items-center gap-4 mb-1">
+            <span class="text-xs text-muted">Training Progress</span>
+            <span class="text-xs text-secondary" id="level-progress-text">0%</span>
+          </div>
+          <div class="progress-track" style="height:8px">
+            <div class="progress-fill" id="level-progress" style="width:0%"></div>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-lg mt-3" id="start-quiz-btn">Start Quiz →</button>
+      </div>
+      <div class="hero-score fade-up-2">
+        <p class="section-title text-center mb-2">Awareness Score</p>
+        <div class="score-ring-wrap">
+          <svg width="140" height="140" viewBox="0 0 140 140">
+            <circle cx="70" cy="70" r="58" fill="none" stroke="var(--border)" stroke-width="10"/>
+            <circle cx="70" cy="70" r="58" fill="none" stroke="var(--accent)"
+                    stroke-width="10" stroke-linecap="round"
+                    stroke-dasharray="364" stroke-dashoffset="364"
+                    id="score-arc" transform="rotate(-90 70 70)"
+                    style="transition: stroke-dashoffset 1s ease"/>
+          </svg>
+          <div class="score-ring-label">
+            <div class="score-val" id="user-score">0</div>
+            <div class="score-sub">Points</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quiz Type Selection -->
+    <div class="mt-4 fade-up-3">
+      <p class="section-title">Choose Phishing Type to Practice</p>
+      <div class="grid-4" id="type-grid">
+        <div class="card type-card" onclick="startQuiz('email')">
+          <div class="type-icon">✉</div>
+          <div class="type-label">EMAIL</div>
+          <h4>Email Phishing</h4>
+          <p class="text-sm text-secondary mt-1">A real phishing email will be sent to your inbox before you answer.</p>
+          <div class="mt-2"><span class="badge badge-blue">Live Email →</span></div>
+        </div>
+        <div class="card type-card" onclick="startQuiz('sms')">
+          <div class="type-icon">💬</div>
+          <div class="type-label">SMS</div>
+          <h4>SMS Phishing</h4>
+          <p class="text-sm text-secondary mt-1">A real smishing text will be sent to your phone before you answer.</p>
+          <div class="mt-2"><span class="badge badge-orange">Live SMS →</span></div>
+        </div>
+        <div class="card type-card" onclick="startQuiz('url')">
+          <div class="type-icon">🔗</div>
+          <div class="type-label">URL</div>
+          <h4>URL Analysis</h4>
+          <p class="text-sm text-secondary mt-1">Analyse live URLs using tldextract to detect fake domains.</p>
+          <div class="mt-2"><span class="badge badge-green">Live Analysis →</span></div>
+        </div>
+        <div class="card type-card" onclick="startQuiz('voice')">
+          <div class="type-icon">🎙</div>
+          <div class="type-label">VOICE</div>
+          <h4>Voice Phishing</h4>
+          <p class="text-sm text-secondary mt-1">Read vishing call transcripts and identify the manipulation tactics.</p>
+          <div class="mt-2"><span class="badge badge-purple">Transcript →</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Analytics -->
+    <div class="mt-4 fade-up-4" id="analytics-section" style="display:none">
+      <p class="section-title">Your Behavioral Analytics</p>
+      <div class="grid-4 mb-3">
+        <div class="card text-center">
+          <div style="font-size:1.6rem;font-weight:700;color:var(--accent)" id="overall-accuracy">—</div>
+          <div class="text-xs text-muted mt-1">Overall Accuracy</div>
+        </div>
+        <div class="card text-center">
+          <div style="font-size:1.6rem;font-weight:700;color:var(--warning)" id="avg-response">—</div>
+          <div class="text-xs text-muted mt-1">Avg Response Time</div>
+        </div>
+        <div class="card text-center">
+          <div style="font-size:1.6rem;font-weight:700" id="total-answered">—</div>
+          <div class="text-xs text-muted mt-1">Questions Answered</div>
+        </div>
+        <div class="card text-center">
+          <div style="font-size:1.1rem;font-weight:700;color:var(--danger)" id="weakest-cat">—</div>
+          <div class="text-xs text-muted mt-1">Weakest Category</div>
+        </div>
+      </div>
+      <div class="card">
+        <p class="section-title mb-2">Accuracy by Category</p>
+        <div id="accuracy-bars" style="display:flex;flex-direction:column;gap:12px"></div>
+      </div>
+    </div>
+
+  </main>
+
+  <style>
+    .type-card {
+      cursor: pointer;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .type-card:hover {
+      border-color: var(--border-bright);
+      transform: translateY(-3px);
+    }
+    .type-icon { font-size: 1.8rem; margin-bottom: 8px; }
+    .type-label {
+      font-size: 0.68rem; font-weight: 700;
+      color: var(--text-muted); text-transform: uppercase;
+      letter-spacing: 0.1em; margin-bottom: 4px;
+    }
+    .badge-purple { background: rgba(163,113,247,0.15); color: #a371f7; border: 1px solid rgba(163,113,247,0.25); }
+    .accuracy-row { display: flex; align-items: center; gap: 12px; }
+  </style>
+
+  <script type="module">
+    import { requireAuth, fetchMe, apiFetch, logout, getUser } from "/static/js/auth.js";
+    requireAuth();
+
+    const LEVEL_PCT = { beginner: 0, intermediate: 33, advanced: 66 };
+
+    async function init() {
+      const user = await fetchMe();
+
+      document.getElementById("user-name").textContent        = user.name;
+      document.getElementById("user-level").textContent       = cap(user.level);
+      document.getElementById("user-score").textContent       = user.score;
+      document.getElementById("nav-initials").textContent     = user.name.split(" ").map(w => w[0]).join("").slice(0,2).toUpperCase();
+      document.getElementById("nav-username").textContent     = user.name;
+      document.getElementById("level-progress-text").textContent = (LEVEL_PCT[user.level] || 0) + "%";
+      document.getElementById("level-progress").style.width  = (LEVEL_PCT[user.level] || 0) + "%";
+
+      // Score arc animation
+      const arc  = document.getElementById("score-arc");
+      const pct  = Math.min(user.score / 500, 1);
+      arc.style.strokeDashoffset = 364 - (pct * 364);
+
+      // Store level for quiz buttons
+      window._userLevel = user.level;
+
+      document.getElementById("logout-btn").addEventListener("click", logout);
+      document.getElementById("start-quiz-btn").addEventListener("click", () => startQuiz("email"));
+
+      loadAnalytics();
+    }
+
+    window.startQuiz = function(type) {
+      const level = window._userLevel || "beginner";
+      window.location.href = `/static/pages/quiz.html?level=${level}&type=${type}`;
+    };
+
+    async function loadAnalytics() {
+      try {
+        const data = await apiFetch("/analytics/me");
+        if (data.message) return;
+
+        document.getElementById("analytics-section").style.display = "block";
+        document.getElementById("overall-accuracy").textContent    = data.overall_accuracy_pct + "%";
+        document.getElementById("avg-response").textContent        = data.avg_response_time_sec + "s";
+        document.getElementById("total-answered").textContent      = data.total_questions_answered;
+        document.getElementById("weakest-cat").textContent         = (data.weakest_category || "—").toUpperCase();
+
+        const colors = { email: "#1a73e8", sms: "#f0883e", url: "#3fb950", voice: "#a371f7" };
+        document.getElementById("accuracy-bars").innerHTML = Object.entries(data.accuracy_by_type || {}).map(([type, pct]) => `
+          <div class="accuracy-row">
+            <span class="text-sm" style="min-width:60px">${type.toUpperCase()}</span>
+            <div class="progress-track" style="flex:1">
+              <div class="progress-fill" style="width:${pct}%; background:${colors[type] || "#58a6ff"}"></div>
+            </div>
+            <span class="text-sm text-secondary" style="min-width:40px; text-align:right">${pct}%</span>
+          </div>
+        `).join("");
+      } catch (_) {}
+    }
+
+    function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+    init();
+  </script>
+</body>
+</html>
